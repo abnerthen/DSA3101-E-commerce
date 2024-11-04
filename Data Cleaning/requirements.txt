@@ -1,5 +1,8 @@
-google-api-python-client
+google-cloud-bigquery[pandas]==3.26.0
 numpy
 pandas
 matplotlib
 seaborn
+python-dotenv
+plotly
+scikit-learn
