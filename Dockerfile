@@ -1,14 +1,19 @@
 # Use Python as base image
 FROM python:3.9
 
+WORKDIR /app
+
+COPY requirements.txt .
+
 # Install jupyter and nbconvert for running notebooks
 RUN pip install jupyter nbconvert
 
 # Install the Google Cloud BigQuery library
-RUN pip install -r "Data Cleaning/requirements.txt"
+RUN pip install --no-cache-dir -r requirements.txt 
 
 # Copy any scripts needed for querying
-COPY run_query.py /app/run_query.py
+COPY "Data Cleaning/" .
+
 
 # Set the working directory
 WORKDIR /app
