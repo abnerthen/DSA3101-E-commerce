@@ -1,17 +1,17 @@
-# Use an official MySQL image from Docker Hub
-FROM mysql:latest
+# Use Python as base image
+FROM python:3.9
 
-# Set environment variables
-# MYSQL_ROOT_PASSWORD is the root password
-# MYSQL_DATABASE is the name of the database to create
-# MYSQL_USER and MYSQL_PASSWORD are for an additional user
-ENV MYSQL_ROOT_PASSWORD=24!dsa3101?10
-ENV MYSQL_DATABASE=ga-sample
-ENV MYSQL_USER=dsa3101
-ENV MYSQL_PASSWORD=24!dsa3101?10
+# Install jupyter and nbconvert for running notebooks
+RUN pip install jupyter nbconvert
 
-# Expose the default MySQL port
-EXPOSE 3306
+# Install the Google Cloud BigQuery library
+RUN pip install -r "Data Cleaning/requirements.txt"
 
-# Add custom SQL files if you have any to initialize the database
-# COPY ./path/to/your_init_script.sql /docker-entrypoint-initdb.d/
+# Copy any scripts needed for querying
+COPY run_query.py /app/run_query.py
+
+# Set the working directory
+WORKDIR /app
+
+# Command to run when the container starts
+CMD ["python", "run_query.py"]
