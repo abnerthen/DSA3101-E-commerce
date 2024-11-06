@@ -2,18 +2,14 @@ import pandas as pd
 from dash import Dash, dcc, html, Output, Input
 import plotly.express as px
 import plotly.graph_objects as go
+import webbrowser
+import threading
+import os
 
-# total_revenue = pd.read_parquet('total_revenue.parquet')
-# agg_sales_by_cat = pd.read_parquet('agg_sales_by_cat.parquet')
-# purchases_per_user = pd.read_parquet('purchases_per_user.parquet')
-# purchase_averages = pd.read_parquet('purchase_averages.parquet')
-# top_customers = pd.read_parquet('top_customers.parquet')
-# numerical_correlation = pd.read_parquet('numerical_correlation.parquet')
-# nested_correlation = pd.read_parquet('nested_correlation.parquet')
-# price_sensitive = pd.read_parquet('price_sensitive.parquet')
-# by_region = pd.read_parquet('by_region.parquet')
-# by_category = pd.read_parquet('by_category.parquet')
+os.chdir("../data")
+
 conversion_funnel = pd.read_parquet('conversion_funnel.parquet')
+channel_conversion_rate = pd.read_parquet('channel_conversion_rate.parquet')
 
 external_stylesheets = [
     {
@@ -46,13 +42,12 @@ app.layout = html.Div([
     html.Div([
     dcc.Tabs(id="tabs", value="tab-1",
              vertical = True, children=[
-        dcc.Tab(label="Total Revenue", value="tab-1"),
-        dcc.Tab(label="Aggregate Sales by Category", value="tab-2"),
+        dcc.Tab(label="Conversion Funnel", value="tab-1")
     ],
     style={
                 "display": "flex",
                 "flexDirection": "column",
-                "width": "20%",
+                "width": "15%",
                 "height": "100vh",  # Full viewport height
             },)
 ], style = {"float": "left"}),
@@ -83,11 +78,25 @@ def render_content(tab):
         ))
         funnel_graph.update_layout(
             title_text='Google Merchandise Store Conversion Path',
-            height=800,
-            width=1400
+            height=700,
+            width=1200
         )
         return html.Div([dcc.Graph(figure = funnel_graph)])
+    
+    elif tab == 'tab-2':
+        df = channel_conversion_rate
+        fig = px.sunburst(df,
+                          path = ['channel', 'main_category'],
+                          values = 'total_conversions',
+                          color = 'channel', 
+                          title = 'Conversions by Channel & Category')
+        return html.Div([dcc.Graph(figure = fig)])
 
+    
+
+def open_browser():
+    webbrowser.open_new("http://127.0.0.1:8050")
 
 if __name__ == "__main__":
-    app.run_server(debug = True)
+    threading.Thread(1, open_browser).run()
+    app.run_server()
