@@ -407,4 +407,26 @@ if __name__ == "__main__":
     pq.write_table(conversion_funnel, 'conversion_funnel.parquet')
     print(f'conversion_funnel.parquet ready, time taken: {time.time() - start}s')
 
-  
+    query = '''
+    SELECT
+      trafficSource.medium AS channel,
+      product.productCategory AS category,
+      COUNT(DISTINCT fullVisitorId) AS total_visitors,
+      COUNTIF(totals.transactions > 0) AS total_conversions,
+      SAFE_DIVIDE(COUNTIF(totals.transactions > 0), COUNT(DISTINCT fullVisitorId)) * 100 AS conversion_rate
+    FROM
+      `bigquery-public-data.google_analytics_sample.ga_sessions_*`,
+      UNNEST(hits) AS hits,
+      UNNEST(hits.product) AS product
+    WHERE
+      _TABLE_SUFFIX BETWEEN '20160801' AND '20170630'  -- Filter for specific date range if needed
+    GROUP BY
+      channel, category
+    ORDER BY
+      conversion_rate DESC
+    '''
+    start = time.time()
+    channel_conversion_rate = client.query(query).result().to_dataframe()
+    channel_conversion_rate = cat_cleaning.clean_categories(channel_conversion_rate, 'category')
+    channel_conversion_rate.to_parquet('channel_conversion_rate.parquet')
+    print(f'channel_conversion_rate.parquet ready, time taken: {time.time() - start}s')
