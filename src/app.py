@@ -12,6 +12,7 @@ agg_sales_by_cat = pd.read_parquet('agg_sales_by_cat.parquet')
 # price_sensitive = pd.read_parquet('price_sensitive.parquet')
 # by_region = pd.read_parquet('by_region.parquet')
 # by_category = pd.read_parquet('by_category.parquet')
+conversion_funnel = pd.read_parquet('conversion_funnel.parquet')
 
 external_stylesheets = [
     {
@@ -66,18 +67,26 @@ html.Div(id='content', style = {'marginLeft': '25%', 'padding': '20px'})
 def render_content(tab):
     if tab == "tab-1":
         # Sales trend line chart
-        fig = px.line(total_revenue, x="date", y="total_revenue", title="Total Revenue by Date")
-        return html.Div([
-            dcc.Graph(figure=fig)
-        ])
+        unique_categories = conversion_funnel['category'].unique()
+        color_map = {category: f'rgba({(i * 50) % 255}, {(i * 100) % 255}, {(i * 150) % 255}, 0.8)' for i, category in enumerate(unique_categories)}
 
-    elif tab == "tab-2":
-        # Monthly sales by category bar chart
-        df = agg_sales_by_cat[agg_sales_by_cat['main_category'] != 'Unavailable']
-        fig = px.area(df, x="date", y="revenue", color="main_category", title="Monthly Sales by Category")
-        return html.Div([
-            dcc.Graph(figure=fig)
-        ])
+        # Create a list of colors for each stage based on the category
+        colors = [color_map[category] for category in conversion_funnel['category']]
+        funnel_graph = go.Figure(go.Funnel(
+            y=conversion_funnel['action'],
+            x=conversion_funnel['users'],
+            text=conversion_funnel['category'],
+            marker_color=colors,
+            textposition='inside',
+            textinfo='text+value+percent initial'
+        ))
+        funnel_graph.update_layout(
+            title_text='Google Merchandise Store Conversion Path',
+            height=800,
+            width=1400
+        )
+        return html.Div([dcc.Graph(figure = funnel_graph)])
+
 
 if __name__ == "__main__":
     app.run_server(debug = True)
