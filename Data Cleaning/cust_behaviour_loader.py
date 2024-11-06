@@ -101,7 +101,7 @@ if __name__ == "__main__":
     agg_sales['total_revenue'] = agg_sales['revenue']['sum']
     agg_sales['avg_sales'] = agg_sales['sales_qty']['mean']
     agg_sales['avg_revenue'] = agg_sales['revenue']['mean']
-    agg_sales.drop(['sales_qty', 'revenue'], axis = 1, inplace = True)
+    agg_sales.drop(['sales_qty', 'revenue'], axis = 1, inplace = True, level = 0)
     agg_sales['date'] = pd.to_datetime(agg_sales_by_cat['date'])
     agg_sales.to_parquet('agg_sales_by_cat.parquet')
     print(f'agg_sales_by_cat.parquet ready, time taken: {time.time() - start}s')
@@ -410,7 +410,7 @@ if __name__ == "__main__":
     query = '''
     SELECT
       trafficSource.medium AS channel,
-      product.productCategory AS category,
+      product.v2ProductCategory AS category,
       COUNT(DISTINCT fullVisitorId) AS total_visitors,
       COUNTIF(totals.transactions > 0) AS total_conversions,
       SAFE_DIVIDE(COUNTIF(totals.transactions > 0), COUNT(DISTINCT fullVisitorId)) * 100 AS conversion_rate
