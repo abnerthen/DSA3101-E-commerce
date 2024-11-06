@@ -6,8 +6,6 @@ import webbrowser
 import threading
 import os
 
-os.chdir("../data")
-
 conversion_funnel = pd.read_parquet('conversion_funnel.parquet')
 channel_conversion_rate = pd.read_parquet('channel_conversion_rate.parquet')
 
@@ -100,4 +98,4 @@ def open_browser():
 
 if __name__ == "__main__":
     threading.Timer(1, open_browser).run()
-    app.run_server()
+    app.run_server(host = '0.0.0.0')
