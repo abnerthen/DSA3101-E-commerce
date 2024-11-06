@@ -1,6 +1,7 @@
 from google.cloud import bigquery
 from google.oauth2 import service_account
 import pandas as pd
+import numpy as np
 from dotenv import load_dotenv
 import os
 import pyarrow.parquet as pq
@@ -118,3 +119,105 @@ if __name__ == "__main__":
     res2 = client.query(query).result().to_dataframe()
     res2['date'] = pd.to_datetime(res2['date'])
     res2.to_parquet('return_rate_by_campaign.parquet')
+
+    query = '''
+    WITH FirstVisit AS (
+        SELECT
+            fullVisitorId,
+            MIN(PARSE_DATE('%Y%m%d', date)) AS first_visit_date
+        FROM
+            `bigquery-public-data.google_analytics_sample.ga_sessions_*`
+        WHERE
+        _TABLE_SUFFIX BETWEEN '20160801' AND '20170801'
+        GROUP BY
+            fullVisitorId
+    ),
+
+    CustomerTypeByCampaign AS (
+        SELECT
+            t.fullVisitorId,
+            t.trafficSource.campaign,
+            IF(PARSE_DATE('%Y%m%d', t.date) = f.first_visit_date, 'New Customer', 'Returning Customer') AS customer_type
+        FROM
+            `bigquery-public-data.google_analytics_sample.ga_sessions_*` AS t, FirstVisit AS f
+        WHERE
+        _TABLE_SUFFIX BETWEEN '20160801' AND '20170801'
+        AND
+            t.fullVisitorId = f.fullVisitorId
+    )
+
+    SELECT
+        campaign,
+        customer_type,
+        COUNT(DISTINCT fullVisitorId) AS customer_count
+    FROM
+        CustomerTypeByCampaign
+    WHERE
+        campaign IS NOT NULL
+        AND campaign != "(not set)"
+    GROUP BY
+        campaign, customer_type
+    ORDER BY
+        customer_count DESC;
+    '''
+
+    result = client.query(query).result().to_dataframe()
+    result = result.pivot(index='campaign', columns='customer_type', values='customer_count').fillna(0)
+    result['ratio'] = np.where(
+        result['Returning Customer'] == 0,
+        0,  # or 0 or another placeholder if you prefer
+        result['New Customer'] / result['Returning Customer']
+    )
+    result = result.sort_values(by='ratio', ascending=False)
+    result = result.reset_index()
+    result.columns = ['campaign', 'new_customers', 'returning_customers', 'ratio']
+    result.to_parquet('new_customer_by_campaign.parquet')
+
+    query = '''
+    WITH campaign_metrics AS (
+        SELECT
+            t.trafficSource.campaign,
+            t.trafficSource.medium AS channel,
+            COUNT(DISTINCT t.fullVisitorId) AS user_count,
+            SUM(t.totals.transactionRevenue) / 1e6 AS total_revenue  -- Revenue in standard units
+        FROM
+            `bigquery-public-data.google_analytics_sample.ga_sessions_*` AS t
+        WHERE
+            _TABLE_SUFFIX BETWEEN '20160801' AND '20170801'
+        AND
+            t.trafficSource.campaign IS NOT NULL
+        AND t.trafficSource.campaign != "(not set)"
+        GROUP BY
+            t.trafficSource.campaign, t.trafficSource.medium
+        ORDER BY
+            total_revenue DESC
+    ),
+        campaign_dates AS (
+        SELECT
+        trafficSource.campaign AS campaign,
+        MIN(PARSE_DATE('%Y%m%d', date)) AS first_visit_date,
+        MAX(PARSE_DATE('%Y%m%d', date)) AS last_visit_date
+        FROM
+        `bigquery-public-data.google_analytics_sample.ga_sessions_*`
+        WHERE
+        _TABLE_SUFFIX BETWEEN '20160801' AND '20170801'
+        GROUP BY
+        trafficSource.campaign
+    )
+
+    SELECT
+        cm.campaign,
+        cm.channel,
+        cm.user_count,
+        cm.total_revenue,
+        cd.first_visit_date,
+        cd.last_visit_date
+    FROM
+        campaign_metrics AS cm, campaign_dates AS cd
+        WHERE cm.campaign = cd.campaign
+    ORDER BY
+        total_revenue DESC;
+    '''
+
+    result = client.query(query).result().to_arrow()
+    pq.write_table(result, 'campaign_info.parquet')
