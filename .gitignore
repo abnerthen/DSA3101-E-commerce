@@ -7,6 +7,7 @@ app
 # "data" folder should not be uploaded to git, in best case scenario dockerfile should run script to ingest data 
 # for notebooks to function
 data
+*.parquet
 
 # cpython code should not be pushed to the repo
 *.pyc
