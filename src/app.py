@@ -52,7 +52,7 @@ app.layout = html.Div([
                 "height": "100vh",  # Full viewport height
             },)
 ], style = {"float": "left"}),
-html.Div(id='content', style = {'marginLeft': '25%', 'padding': '20px'})
+html.Div(id='content', style = {'marginLeft': '15%', 'padding': '20px'})
 ])
 
 # Define callback to update content based on selected tab
