@@ -42,7 +42,8 @@ app.layout = html.Div([
     html.Div([
     dcc.Tabs(id="tabs", value="tab-1",
              vertical = True, children=[
-        dcc.Tab(label="Conversion Funnel", value="tab-1")
+        dcc.Tab(label="Conversion Funnel", value="tab-1"),
+        dcc.Tab(label = 'Conversion Rate by Channel', value = 'tab-2')
     ],
     style={
                 "display": "flex",
