@@ -93,7 +93,7 @@ if __name__ == "__main__":
     agg_sales_by_cat['date'] = pd.to_datetime(agg_sales_by_cat['date']).dt.strftime('%Y-%m')
     agg_sales_by_cat = cat_cleaning.clean_categories(agg_sales_by_cat, 'product_category')
     agg_sales = agg_sales_by_cat.groupby(
-    ['date', 'main_category']).agg({
+    ['date', 'main_category', 'sub_category', 'subsub_category']).agg({
         'sales_qty': ['sum', 'mean'],
         'revenue': ['sum', 'mean']
     }).reset_index()
