@@ -1,2 +1,5 @@
 # DO NOT INCLUDE .env, as this contains secrets
 .env
+
+# for internal testing
+app

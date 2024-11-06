@@ -1,9 +1,10 @@
 import pandas as pd
 from dash import Dash, dcc, html, Output, Input
 import plotly.express as px
+import plotly.graph_objects as go
 
-total_revenue = pd.read_parquet('total_revenue.parquet')
-agg_sales_by_cat = pd.read_parquet('agg_sales_by_cat.parquet')
+# total_revenue = pd.read_parquet('total_revenue.parquet')
+# agg_sales_by_cat = pd.read_parquet('agg_sales_by_cat.parquet')
 # purchases_per_user = pd.read_parquet('purchases_per_user.parquet')
 # purchase_averages = pd.read_parquet('purchase_averages.parquet')
 # top_customers = pd.read_parquet('top_customers.parquet')
