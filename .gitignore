@@ -3,3 +3,6 @@
 
 # for internal testing
 app
+
+# cpython code should not be pushed to the repo
+*.pyc
