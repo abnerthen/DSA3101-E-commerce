@@ -13,7 +13,7 @@ Because of the way this dashboard is set up, it requires data fetched from BigQu
 First, build the image. On Docker desktop, navigate to the project directory, and run this in the terminal.
 
 ```
-docker build -t my-app:1.0 -f src/Dockerfile
+docker build -t my-app:1.0 -f src/Dockerfile .
 ```
 
 Next, you will want to run the container after building it. Just go to "Images", select the container and click 'Run'.
