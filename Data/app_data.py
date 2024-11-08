@@ -1,12 +1,13 @@
 from google.cloud import bigquery
 from google.oauth2 import service_account
 import pandas as pd
-from dotenv import load_dotenv
 import os
 import pyarrow.parquet as pq
 import time
+from dotenv import load_dotenv
 
 load_dotenv()
+
 
 key = {
   "type": "service_account",
@@ -96,6 +97,7 @@ def clean_categories(df, cat_var):
     return df
 
 if __name__ == "__main__":
+    print("Project ID:", os.getenv("PROJ_ID"))
     query = """
     SELECT
         CASE WHEN hits.eCommerceAction.action_type = '1' THEN 'Click through of product lists'
