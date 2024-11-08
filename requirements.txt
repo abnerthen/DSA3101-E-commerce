@@ -9,3 +9,5 @@ plotly==5.24.1
 scikit-learn==1.5.2
 pyarrow==18.0.0
 dash==2.18.2
+jupyter==1.1.1
+nbconvert==7.16.4
