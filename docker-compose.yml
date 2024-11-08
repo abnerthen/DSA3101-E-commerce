@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  query-service:
+    build:
+      context: .
+      dockerfile: Data/Dockerfile
+    volumes:
+      - ./Data:/data
+      - ./requirements.txt:/data/requirements.txt
+    command: >
+      bash -c "shopt -s nullglob; for file in /data/*.py; do python $file; done"
+    
+
+  notebook-runner:
+    build:
+      context: .       
+      dockerfile: Notebooks/Dockerfile
+    volumes:
+      - data:/data
+      - ./Notebooks:/project
+      - ./requirements.txt:/project/requirements.txt
+    environment:
+      - PYTHONUNBUFFERED=1  
+    command: >
+      find /project/Subgroup_A /project/Subgroup_B -type f -name "*.ipynb" 
+      -exec jupyter nbconvert --to notebook --execute --inplace {} \;
+    depends_on:
+      - query-service
+
+  src-service:
+    build:
+      context: .   
+      dockerfile: src/Dockerfile
+    volumes:
+      - data:/data
+      - ./src:/app       
+      - ./requirements.txt:/app/requirements.txt  # Mount requirements.txt to container
+    env_file:
+      - .env   
+    environment:
+      - PYTHONUNBUFFERED=1
+    ports:
+      - "8050:8050"
+    command: python app.py
+    depends_on:
+     - query-service
+
+volumes:
+  data:
+    driver: local

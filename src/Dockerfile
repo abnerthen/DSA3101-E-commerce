@@ -2,9 +2,9 @@
 FROM python:3.12-slim
 
 # Set working directory to the app folder
-WORKDIR /usr/src/app
+WORKDIR /app
 
-COPY ../requirements.txt /usr/src/app/requirements.txt
+COPY requirements.txt /app/
 
 # Install app dependencies (adjust the requirements file if needed)
 RUN pip install -r requirements.txt
@@ -13,9 +13,9 @@ RUN pip install -r requirements.txt
 COPY src/ .
 
 # copy .env 
-COPY .env /usr/src/app/.env
+COPY ../.env /app/.env
 
-RUN python app_data.py
+# RUN python app_data.py
 
 # Expose app port (adjust based on your app's requirement)
 EXPOSE 8050
