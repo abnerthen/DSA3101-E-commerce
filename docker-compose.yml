@@ -5,11 +5,16 @@ services:
     build:
       context: .
       dockerfile: Data/Dockerfile
+    command: >
+      bash -c "shopt -s nullglob; for file in /data/*.py; do
+               echo 'Running $file';  # Debugging line
+               python $file;
+             done && tail -f /dev/null"
     volumes:
       - ./Data:/data
       - ./requirements.txt:/data/requirements.txt
-    command: >
-      bash -c "shopt -s nullglob; for file in /data/*.py; do python $file; done"
+      - data:/data
+    working_dir: /data
     
 
   notebook-runner:
