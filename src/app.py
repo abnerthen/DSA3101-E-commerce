@@ -23,11 +23,11 @@ def func():
     churned = online_retail[online_retail['DaysSinceLastPurchase'] > 30]
     online_retail['YearMonth'] = online_retail['InvoiceDate'].dt.to_period('M')
 
-    # Monthly churn rate for each country
-    monthly_churn_country = (
-        churned.groupby(['YearMonth', 'Country']).size() / online_retail.groupby(['YearMonth', 'Country']).size()
-    ).reset_index().rename(columns={0: 'ChurnRate'})
-    monthly_churn_country['YearMonth'] = monthly_churn_country['YearMonth'].dt.to_timestamp()
+    # Calculate churn rate by month
+    monthly_churn = churned.groupby('YearMonth').size() / online_retail.groupby('YearMonth').size()
+    monthly_churn = monthly_churn.reset_index().rename(columns={0: 'ChurnRate'})
+    monthly_churn['YearMonth'] = monthly_churn['YearMonth'].dt.to_timestamp()
+    
     return monthly_churn_country
 
 country_churn = func()
