@@ -96,8 +96,17 @@ def clean_categories(df, cat_var):
 
     return df
 
+def write_csv(my_dictionary):
+    for key in my_dictionary:
+        path = f'{key}.parquet'
+        my_dictionary[key].to_parquet(path)
+        print(f'Completed {path}')
+        
+
 if __name__ == "__main__":
     print("Project ID:", os.getenv("PROJ_ID"))
+
+    query_dict = {}
     query = """
     SELECT
         CASE WHEN hits.eCommerceAction.action_type = '1' THEN 'Click through of product lists'
@@ -146,10 +155,8 @@ if __name__ == "__main__":
     ORDER BY
         users DESC
     """
-    start = time.time()
-    conversion_funnel = client.query(query).result().to_arrow()
-    pq.write_table(conversion_funnel, 'conversion_funnel.parquet')
-    print(f'conversion_funnel.parquet ready, time taken: {time.time() - start}s')
+    conversion_funnel = client.query(query).result().to_dataframe()
+    query_dict['conversion_funnel'] = conversion_funnel
 
     query = '''
     SELECT
@@ -169,8 +176,8 @@ if __name__ == "__main__":
     ORDER BY
       conversion_rate DESC
     '''
-    start = time.time()
     channel_conversion_rate = client.query(query).result().to_dataframe()
     channel_conversion_rate = clean_categories(channel_conversion_rate, 'category')
-    channel_conversion_rate.to_parquet('channel_conversion_rate.parquet')
-    print(f'channel_conversion_rate.parquet ready, time taken: {time.time() - start}s')
+    query_dict['channel_conversion_rate'] = channel_conversion_rate
+
+    write_csv(query_dict)

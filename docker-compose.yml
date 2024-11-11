@@ -6,8 +6,7 @@ services:
       context: .
       dockerfile: Data/Dockerfile
     command: >
-      bash -c "cd /scripts && 
-                for file in *.py; do
+      bash -c "for file in ../scripts/*.py; do
                   echo 'Processing $file...';
                   python $file;
                   echo 'Finished $file';
@@ -16,7 +15,7 @@ services:
       - ./Data:/scripts           ### Python scripts go here
       - data:/data                   ### csv go here
       - ./requirements.txt:/scripts/requirements.txt
-    working_dir: /scripts
+    working_dir: /data
 
     
 
