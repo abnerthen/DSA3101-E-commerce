@@ -12,20 +12,22 @@ channel_conversion_rate = pd.read_parquet('channel_conversion_rate.parquet')
 def func():
     online_retail = pd.read_csv('online_retail.csv')
     online_retail['InvoiceDate'] = pd.to_datetime(online_retail['InvoiceDate'])
-    online_retail['YearMonth'] = online_retail['InvoiceDate'].dt.to_period('M')  # Format: YYYY-MM
+    online_retail['Country'] = online_retail['Country'].fillna('Unknown')
 
-    # Sort by CustomerID and InvoiceDate to calculate days since last purchase
+    # Sort by customer and invoice date for churn calculations
     online_retail = online_retail.sort_values(by=['CustomerID', 'InvoiceDate'])
     online_retail['NextPurchaseDate'] = online_retail.groupby('CustomerID')['InvoiceDate'].shift(-1)
     online_retail['DaysSinceLastPurchase'] = (online_retail['NextPurchaseDate'] - online_retail['InvoiceDate']).dt.days
+    online_retail['YearMonth'] = online_retail['InvoiceDate'].dt.to_period('M')
 
-    # Define churn as customers not purchasing again within 30 days
+    # Define churned customers (no purchase within 30 days)
     churned = online_retail[online_retail['DaysSinceLastPurchase'] > 30]
 
-    # Calculate churn rate by month
-    monthly_churn = churned.groupby('YearMonth').size() / online_retail.groupby('YearMonth').size()
-    monthly_churn = monthly_churn.reset_index().rename(columns={0: 'ChurnRate'})
-    monthly_churn['YearMonth'] = monthly_churn['YearMonth'].dt.to_timestamp()
+    # Monthly churn rate for each country
+    monthly_churn_country = (
+        churned.groupby(['YearMonth', 'Country']).size() / online_retail.groupby(['YearMonth', 'Country']).size()
+    ).reset_index().rename(columns={0: 'ChurnRate'})
+    monthly_churn_country['YearMonth'] = monthly_churn_country['YearMonth'].dt.to_timestamp()
 
     return monthly_churn_country
 
