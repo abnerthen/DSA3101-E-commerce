@@ -9,6 +9,29 @@ import os
 conversion_funnel = pd.read_parquet('conversion_funnel.parquet')
 channel_conversion_rate = pd.read_parquet('channel_conversion_rate.parquet')
 
+def func():
+    online_retail = pd.read_csv('online_retail.csv')
+    online_retail['InvoiceDate'] = pd.to_datetime(online_retail['InvoiceDate'])
+    online_retail['Country'] = online_retail['Country'].fillna('Unknown')
+
+    # Sort by customer and invoice date for churn calculations
+    online_retail = online_retail.sort_values(by=['CustomerID', 'InvoiceDate'])
+    online_retail['NextPurchaseDate'] = online_retail.groupby('CustomerID')['InvoiceDate'].shift(-1)
+    online_retail['DaysSinceLastPurchase'] = (online_retail['NextPurchaseDate'] - online_retail['InvoiceDate']).dt.days
+
+    # Define churned customers (no purchase within 30 days)
+    churned = online_retail[online_retail['DaysSinceLastPurchase'] > 30]
+    online_retail['YearMonth'] = online_retail['InvoiceDate'].dt.to_period('M')
+
+    # Monthly churn rate for each country
+    monthly_churn_country = (
+        churned.groupby(['YearMonth', 'Country']).size() / online_retail.groupby(['YearMonth', 'Country']).size()
+    ).reset_index().rename(columns={0: 'ChurnRate'})
+    monthly_churn_country['YearMonth'] = monthly_churn_country['YearMonth'].dt.to_timestamp()
+    return monthly_churn_country
+
+country_churn = func()
+
 external_stylesheets = [
     {
         "href": (
@@ -41,7 +64,8 @@ app.layout = html.Div([
     dcc.Tabs(id="tabs", value="tab-1",
              vertical = True, children=[
         dcc.Tab(label="Conversion Funnel", value="tab-1"),
-        dcc.Tab(label = 'Conversion Rate by Channel', value = 'tab-2')
+        dcc.Tab(label = 'Conversion Rate by Channel', value = 'tab-2'),
+        dcc.Tab(label = 'Monthly Churn Rate by Country', value = 'tab-3')
     ],
     style={
                 "display": "flex",
@@ -90,6 +114,17 @@ def render_content(tab):
                           color = 'channel', 
                           title = 'Conversions by Channel & Category')
         return html.Div([dcc.Graph(figure = fig)])
+    
+    elif tab == 'tab-3':
+        fig = px.choropleth(
+            country_churn,
+            locations="Country",
+            locationmode="country names",
+            color="ChurnRate",
+            title="Churn Rate by Country",
+            color_continuous_scale="Reds"
+        )
+        return html.Div([dcc.Graph(figure=fig)])
 
     
 
