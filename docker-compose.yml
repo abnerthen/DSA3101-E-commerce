@@ -6,15 +6,18 @@ services:
       context: .
       dockerfile: Data/Dockerfile
     command: >
-      bash -c "shopt -s nullglob; for file in /data/*.py; do
-               echo 'Running $file';  # Debugging line
-               python $file;
-             done && tail -f /dev/null"
+      bash -c "cd /scripts && 
+                for file in *.py; do
+                  echo 'Processing $file...';
+                  python $file;
+                  echo 'Finished $file';
+                done"
     volumes:
-      - ./Data:/data
-      - ./requirements.txt:/data/requirements.txt
-      - data:/data
-    working_dir: /data
+      - ./Data:/scripts           ### Python scripts go here
+      - data:/data                   ### csv go here
+      - ./requirements.txt:/scripts/requirements.txt
+    working_dir: /scripts
+
     
 
   notebook-runner:
