@@ -114,8 +114,6 @@ if __name__ == "__main__":
     ORDER BY
         total_revenue DESC;
     '''
-    start = time.time()
     result = client.query(query).result().to_dataframe()
     result = clean_categories(result, 'product_category')
     result.to_parquet('marketing_channel_metrics.parquet')
-    print(f'marketing_channel_metrics.parquet ready, time taken: {time.time() - start} s')
