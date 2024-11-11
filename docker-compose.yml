@@ -4,7 +4,7 @@ services:
   query-service:
     build:
       context: .
-      dockerfile: Data/Dockerfile
+      dockerfile: data/Dockerfile
     command: >
       bash -c "for file in ../scripts/*.py; do
                   echo 'Processing $file...';
@@ -12,10 +12,10 @@ services:
                   echo 'Finished $file';
                 done"
     volumes:
-      - ./Data:/scripts           ### Python scripts go here
-      - data:/data                   ### csv go here
+      - ./data:/scripts           ### Python scripts go here
+      - data-repo:/data-repo                   ### csv go here
       - ./requirements.txt:/scripts/requirements.txt
-    working_dir: /data
+    working_dir: /data-repo
 
     
 
@@ -24,7 +24,7 @@ services:
       context: .       
       dockerfile: Notebooks/Dockerfile
     volumes:
-      - data:/data
+      - data-repo:/data
       - ./Notebooks:/project
       - ./requirements.txt:/project/requirements.txt
     environment:
@@ -33,14 +33,15 @@ services:
       find /project/Subgroup_A /project/Subgroup_B -type f -name "*.ipynb" 
       -exec jupyter nbconvert --to notebook --execute --inplace {} \;
     depends_on:
-      - query-service
+      query-service:
+        condition: service_healthy
 
   src-service:
     build:
       context: .   
       dockerfile: src/Dockerfile
     volumes:
-      - data:/data
+      - data-repo:/data
       - ./src:/app       
       - ./requirements.txt:/app/requirements.txt  # Mount requirements.txt to container
     env_file:
@@ -51,8 +52,9 @@ services:
       - "8050:8050"
     command: python app.py
     depends_on:
-     - query-service
+     query-service:
+      condition: service_healthy
 
 volumes:
-  data:
+  data-repo:
     driver: local
