@@ -1,1 +1,14 @@
+# DO NOT INCLUDE .env, as this contains secrets
 .env
+
+# for internal testing
+app
+
+# "data" folder should not be uploaded to git if it contains csv,
+# in best case scenario dockerfile should run script to ingest data 
+# for notebooks to function
+*.parquet
+*.csv
+
+# cpython code should not be pushed to the repo
+*.pyc
