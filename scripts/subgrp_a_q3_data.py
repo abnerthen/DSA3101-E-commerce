@@ -1,13 +1,12 @@
 from google.cloud import bigquery
 from google.oauth2 import service_account
 import pandas as pd
+from dotenv import load_dotenv
 import os
 import pyarrow.parquet as pq
 import time
-from dotenv import load_dotenv
 
 load_dotenv()
-
 
 key = {
   "type": "service_account",
@@ -25,7 +24,6 @@ key = {
 
 credentials = service_account.Credentials.from_service_account_info(key)
 client = bigquery.Client(credentials= credentials,project=os.getenv("PROJ_ID"))
-
 
 exact_replacements = {
     "Apparel//Men's-T-Shirts": "Apparel/Men's/Men's-T-Shirts",
@@ -97,87 +95,38 @@ def clean_categories(df, cat_var):
     return df
 
 def write_csv(my_dictionary):
+    data_folder = os.path.join(os.path.dirname(__file__), '..', 'data')
+    os.makedirs(data_folder, exist_ok = True)
     for key in my_dictionary:
         path = f'{key}.parquet'
-        my_dictionary[key].to_parquet(path)
+        save_path = os.path.join(data_folder, path)
+        my_dictionary[key].to_parquet(save_path)
         print(f'Completed {path}')
-        
 
 if __name__ == "__main__":
-    print("Project ID:", os.getenv("PROJ_ID"))
 
-    query_dict = {}
-    query = """
-    SELECT
-        CASE WHEN hits.eCommerceAction.action_type = '1' THEN 'Click through of product lists'
-              WHEN hits.eCommerceAction.action_type = '2' THEN 'Product detail views'
-              WHEN hits.eCommerceAction.action_type = '5' THEN 'Check out'
-              WHEN hits.eCommerceAction.action_type = '6' THEN 'Completed purchase'
-        END AS action,
-        CASE WHEN product.v2ProductCategory LIKE '%Office%'
-          OR product.v2ProductCategory IN ('Notebooks & Journals', 'Writing') THEN 'Office'
-        WHEN product.v2ProductCategory LIKE '%Apparel%'
-          OR product.v2ProductCategory LIKE '%Wearables%'
-          OR product.v2ProductCategory LIKE '%Men%' THEN 'Apparel'
-        WHEN product.v2ProductCategory LIKE '%Bags%'
-          OR product.v2ProductCategory IN ('Backpacks', 'More Bags') THEN 'Bags'
-        WHEN product.v2ProductCategory LIKE '%Brand%'
-          OR product.v2ProductCategory IN ('Apple', 'YouTube', 'Waze', 'Google') THEN 'Brands'
-        WHEN product.v2ProductCategory LIKE '%Drinkware%'
-          OR product.v2ProductCategory LIKE '%Fun%'
-          OR product.v2ProductCategory IN ('Mugs', 'Fruit Games',
-            'Housewares', 'Headgear', 'Headwear', 'Tumblers') THEN 'Accessories'
-        WHEN product.v2ProductCategory LIKE '%Lifestyle%' THEN 'Lifestyle'
-        WHEN product.v2ProductCategory LIKE '%Electronics%' THEN 'Electronics'
-        WHEN product.v2ProductCategory IN ('Home', '${escCatTitle}', '(not set)',
-        '${productitem.product.origCatName}')
-           THEN 'Unavailable'
-        WHEN product.v2ProductCategory LIKE '%Sale%' THEN 'Sale'
-        ELSE 'Other'
-        END AS category,
-        COUNT(fullVisitorID) AS users,
-    FROM
-        `bigquery-public-data.google_analytics_sample.ga_sessions_*`,
-        UNNEST(hits) AS hits,
-        UNNEST(hits.product) AS product
-    WHERE
-        _TABLE_SUFFIX BETWEEN '20160801' AND '20170801'
-    AND
-        (
-        hits.eCommerceAction.action_type != '0'
-        AND
-        hits.eCommerceAction.action_type != '3'
-        AND
-        hits.eCommerceAction.action_type != '4'
-        )
-    GROUP BY
-        category, action
-    ORDER BY
-        users DESC
-    """
-    conversion_funnel = client.query(query).result().to_dataframe()
-    query_dict['conversion_funnel'] = conversion_funnel
-
+    d = {}
     query = '''
     SELECT
-      trafficSource.medium AS channel,
-      product.v2ProductCategory AS category,
-      COUNT(DISTINCT fullVisitorId) AS total_visitors,
-      COUNTIF(totals.transactions > 0) AS total_conversions,
-      SAFE_DIVIDE(COUNTIF(totals.transactions > 0), COUNT(DISTINCT fullVisitorId)) * 100 AS conversion_rate
+        trafficSource.medium AS channel,
+        product.v2ProductCategory AS product_category,
+        COUNT(DISTINCT fullVisitorId) AS total_users,
+        COUNT(*) AS total_sessions,
+        COUNT(DISTINCT hits.transaction.transactionID) AS total_transactions,
+        SUM(IFNULL(product.productRevenue / 1e6, 0)) AS total_revenue -- converting from micros
     FROM
-      `bigquery-public-data.google_analytics_sample.ga_sessions_*`,
-      UNNEST(hits) AS hits,
-      UNNEST(hits.product) AS product
+        `bigquery-public-data.google_analytics_sample.ga_sessions_*`,
+        UNNEST(hits) AS hits, -- Unnesting hits first
+        UNNEST(hits.product) AS product -- Then unnesting product from hit
     WHERE
-      _TABLE_SUFFIX BETWEEN '20160801' AND '20170630'  -- Filter for specific date range if needed
+        _TABLE_SUFFIX BETWEEN '20160801' AND '20170801' -- example date range
     GROUP BY
-      channel, category
+        channel, product_category
     ORDER BY
-      conversion_rate DESC
+        total_revenue DESC;
     '''
-    channel_conversion_rate = client.query(query).result().to_dataframe()
-    channel_conversion_rate = clean_categories(channel_conversion_rate, 'category')
-    query_dict['channel_conversion_rate'] = channel_conversion_rate
-
-    write_csv(query_dict)
+    result = client.query(query).result().to_dataframe()
+    result = clean_categories(result, 'product_category')
+    d['marketing_channel_metrics'] = result
+    
+    write_csv(d)

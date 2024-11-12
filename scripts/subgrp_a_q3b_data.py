@@ -26,7 +26,18 @@ key = {
 credentials = service_account.Credentials.from_service_account_info(key)
 client = bigquery.Client(credentials= credentials,project=os.getenv("PROJ_ID"))
 
+def write_csv(my_dictionary):
+    data_folder = os.path.join(os.path.dirname(__file__), '..', 'data')
+    os.makedirs(data_folder, exist_ok = True)
+    for key in my_dictionary:
+        path = f'{key}.parquet'
+        save_path = os.path.join(data_folder, path)
+        my_dictionary[key].to_parquet(save_path)
+        print(f'Completed {path}')
+
 if __name__ == "__main__":
+    query_dict = {}
+
     query = '''
     SELECT
         *,
@@ -52,8 +63,8 @@ if __name__ == "__main__":
             total_revenue DESC
         );
     '''
-    result = client.query(query).result().to_arrow()
-    pq.write_table(result, 'aov_conversion.parquet')
+    result = client.query(query).result().to_dataframe()
+    query_dict['aov_conversion'] = result
 
     query = '''
     SELECT
@@ -83,8 +94,8 @@ if __name__ == "__main__":
     avg_order_value DESC;
     '''
 
-    result = client.query(query).result().to_arrow()
-    pq.write_table(result, 'marketing_metrics.parquet')
+    result = client.query(query).result().to_dataframe()
+    query_dict['marketing_metrics'] = result
 
     query = '''
     SELECT
@@ -98,8 +109,8 @@ if __name__ == "__main__":
         AND _TABLE_SUFFIX BETWEEN '20160801' AND '20170801'
     '''
 
-    result = client.query(query).result().to_arrow()
-    pq.write_table(result, 'campaign_distribution.parquet')
+    result = client.query(query).result().to_dataframe()
+    query_dict['campaign_distribution'] = result
 
     query = '''
     SELECT
@@ -118,7 +129,7 @@ if __name__ == "__main__":
 
     res2 = client.query(query).result().to_dataframe()
     res2['date'] = pd.to_datetime(res2['date'])
-    res2.to_parquet('return_rate_by_campaign.parquet')
+    query_dict['return_rate_by_campaign'] = res2
 
     query = '''
     WITH FirstVisit AS (
@@ -171,7 +182,7 @@ if __name__ == "__main__":
     result = result.sort_values(by='ratio', ascending=False)
     result = result.reset_index()
     result.columns = ['campaign', 'new_customers', 'returning_customers', 'ratio']
-    result.to_parquet('new_customer_by_campaign.parquet')
+    query_dict['new_customer_by_campaign'] = result
 
     query = '''
     WITH campaign_metrics AS (
@@ -219,5 +230,7 @@ if __name__ == "__main__":
         total_revenue DESC;
     '''
 
-    result = client.query(query).result().to_arrow()
-    pq.write_table(result, 'campaign_info.parquet')
+    result = client.query(query).result().to_dataframe()
+    query_dict['campaign_info'] = result
+
+    write_csv(query_dict)

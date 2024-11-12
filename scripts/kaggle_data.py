@@ -30,7 +30,8 @@ api.authenticate()
 dataset_name = "karkavelrajaj/amazon-sales-dataset"  # Example dataset
 
 # Define a target directory to save the downloaded dataset
-my_dir = os.path.dirname(os.path.abspath(__file__))
+my_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'data')
+os.makedirs(my_dir, exist_ok = True)
 
 # Download the dataset
 api.dataset_download_files(dataset_name, path=my_dir, unzip=True)

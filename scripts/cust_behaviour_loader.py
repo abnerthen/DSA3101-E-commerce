@@ -27,9 +27,12 @@ credentials = service_account.Credentials.from_service_account_info(key)
 client = bigquery.Client(credentials= credentials,project=os.getenv("PROJ_ID"))
 
 def write_csv(my_dictionary):
+    data_folder = os.path.join(os.path.dirname(__file__), '..', 'data')
+    os.makedirs(data_folder, exist_ok = True)
     for key in my_dictionary:
         path = f'{key}.parquet'
-        my_dictionary[key].to_parquet(path)
+        save_path = os.path.join(data_folder, path)
+        my_dictionary[key].to_parquet(save_path)
         print(f'Completed {path}')
 
 if __name__ == "__main__":
